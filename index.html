@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Caderno de Contas · Gestão financeira pessoal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Chart.js (gráficos interativos) – requer internet na primeira carga -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- ===== MENU LATERAL (vira barra superior no celular) ===== -->
+  <aside class="side">
+    <h1>Caderno de Contas</h1>
+    <nav id="nav">
+      <button data-view="today" class="on">Início</button>
+      <span class="nav-sep">Organização</span>
+      <button data-view="calendar">Calendário</button>
+      <button data-view="tasks">Tarefas</button>
+      <button data-view="projects">Projetos e áreas</button>
+      <button data-view="notes">Notas</button>
+      <span class="nav-sep">Finanças</span>
+      <button data-view="dashboard">Painel</button>
+      <button data-view="transactions">Transações</button>
+      <button data-view="payments">Contas a pagar</button>
+      <button data-view="recurring">Parcelas e recorrências</button>
+      <button data-view="debts">Dívidas</button>
+      <button data-view="budget">Orçamento</button>
+      <button data-view="goals">Metas</button>
+      <button data-view="investments">Investimentos</button>
+      <button data-view="reports">Relatórios</button>
+    </nav>
+    <div class="side-foot">
+      <label class="pick">Cor do tema <input type="color" id="accent" value="#2f5fd0"></label>
+      <button class="link" id="btn-theme">Alternar claro/escuro</button>
+      <small class="kbd">Atalho: tecla N = novo lançamento</small>
+      <button class="link" id="btn-export">Exportar backup</button>
+      <button class="link" id="btn-import">Importar backup</button>
+      <input type="file" id="file-import" accept="application/json" hidden>
+      <button class="link" id="btn-seed">Carregar dados de exemplo</button>
+      <button class="link" id="btn-clear">Apagar todos os dados</button>
+    </div>
+  </aside>
+
+  <main>
+    <header class="top">
+      <h2 id="title">Painel</h2>
+      <label class="mpick">Mês de referência <input type="month" id="month"></label>
+      <button class="bell" id="eye" type="button" aria-pressed="false">Ocultar valores</button>
+      <button class="bell" id="bell" type="button">Contas a vencer <b id="bell-n">0</b></button>
+    </header>
+    <div id="alerts"></div>
+
+    <!-- ===== INÍCIO (organização pessoal) ===== -->
+    <section id="view-today" class="view" hidden>
+      <div class="hello"><div><h3 id="t-greet"></h3><p class="hint" id="t-quote"></p></div><div class="hello-r"><strong id="t-date"></strong><br><small id="t-week"></small></div></div>
+      <div class="cards" id="t-cards"></div>
+      <div class="grid3">
+        <div class="panel"><h3>Hoje em resumo <button class="mini" data-l="addprio">+ Prioridade</button></h3><div id="t-glance"></div></div>
+        <div class="panel"><h3>Próximos 7 dias</h3><div class="seg" id="t-tabs"></div><div id="t-upcoming"></div></div>
+        <div class="panel"><h3>Calendário <button class="mini" data-l="addevent">+ Evento</button></h3><div id="t-cal"></div></div>
+        <div class="panel"><h3>Notas recentes</h3><div id="t-notes"></div></div>
+        <div class="panel"><h3>Projetos ativos</h3><div id="t-projects"></div></div>
+        <div class="panel"><h3>Esta semana</h3><div id="t-week-stats"></div></div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="panel"><h3>Captura rápida</h3><input type="text" id="qc" placeholder="Anote uma ideia, tarefa, compromisso… (Enter cria tarefa)" aria-label="Captura rápida">
+          <div class="row" style="margin-top:10px"><button class="mini" data-l="qc-note">Nota</button><button class="mini" data-l="qc-task">Tarefa</button><button class="mini" data-l="qc-event">Evento</button><button class="mini" data-l="qc-meeting">Reunião</button></div></div>
+        <div class="panel"><h3>Áreas de foco</h3><div class="chips" id="t-areas"></div></div>
+      </div>
+    </section>
+
+    <!-- ===== CALENDÁRIO ===== -->
+    <section id="view-calendar" class="view" hidden>
+      <div class="bar"><button class="btn ghost" data-l="calprev" aria-label="Mês anterior">‹</button><strong id="c-title" class="cal-title"></strong><button class="btn ghost" data-l="calnext" aria-label="Próximo mês">›</button><button class="btn ghost" data-l="caltoday">Hoje</button><button class="btn" data-l="addevent">+ Evento</button></div>
+      <p class="hint legend"><u class="ev"></u>compromisso <u class="tk"></u>tarefa com prazo <u class="bill"></u>conta a pagar <u class="inc"></u>receita a receber</p>
+      <div class="grid cal-layout"><div class="panel"><div id="c-grid"></div></div><div class="panel"><h3 id="c-day-title"></h3><div id="c-day"></div></div></div>
+    </section>
+
+    <!-- ===== TAREFAS ===== -->
+    <section id="view-tasks" class="view" hidden>
+      <div class="bar"><input type="search" id="k-q" placeholder="Buscar tarefa…">
+        <select id="k-status"><option value="">Todas</option><option value="pendentes">Pendentes</option><option value="atrasadas">Atrasadas</option><option value="concluidas">Concluídas</option></select>
+        <select id="k-proj"></select><button class="btn" data-l="addtask">+ Nova tarefa</button></div>
+      <div class="panel"><div class="scroll"><table id="k-table"></table></div></div>
+    </section>
+
+    <!-- ===== PROJETOS E ÁREAS ===== -->
+    <section id="view-projects" class="view" hidden>
+      <div class="bar"><button class="btn ghost" data-l="addarea">+ Nova área</button><button class="btn" data-l="addproject">+ Novo projeto</button></div>
+      <h3 class="sec">Áreas de foco</h3><div class="chips" id="p-areas"></div>
+      <h3 class="sec">Projetos</h3><div class="cards" id="p-cards"></div>
+    </section>
+
+    <!-- ===== NOTAS ===== -->
+    <section id="view-notes" class="view" hidden>
+      <div class="bar"><input type="search" id="n-q" placeholder="Buscar nas notas…"><select id="n-tag"></select><button class="btn" data-l="addnote">+ Nova nota</button></div>
+      <div class="notes" id="n-list"></div>
+    </section>
+
+    <!-- ===== PAINEL ===== -->
+    <section id="view-dashboard" class="view">
+      <div class="cards" id="cards-bal"></div>
+      <div class="cards" id="cards"></div>
+      <div class="grid">
+        <div class="panel wide"><h3>Projeção de caixa (próximos 30 dias)</h3><div class="ch"><canvas id="ch-forecast"></canvas></div><p class="hint" id="fc-note"></p></div>
+        <div class="panel wide"><h3>Meu desempenho no mês</h3><ul class="ins-list" id="insights"></ul></div>
+        <div class="panel"><h3>Receitas x despesas (6 meses)</h3><div class="ch"><canvas id="ch-bars"></canvas></div></div>
+        <div class="panel"><h3>Despesas por categoria</h3><div class="ch"><canvas id="ch-cat"></canvas></div></div>
+        <div class="panel"><h3>Status dos pagamentos (mês)</h3><div class="ch"><canvas id="ch-status"></canvas></div></div>
+        <div class="panel"><h3>Contas pendentes</h3><div class="scroll"><table id="pending"></table></div></div>
+        <div class="panel wide"><h3>Evolução do saldo acumulado (12 meses)</h3><div class="ch"><canvas id="ch-line"></canvas></div></div>
+        <div class="panel wide">
+          <h3>Comparar meses <input type="month" id="cmp-month"></h3>
+          <div class="scroll"><table id="cmp-table"></table></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TRANSAÇÕES ===== -->
+    <section id="view-transactions" class="view" hidden>
+      <div class="bar">
+        <input type="search" id="f-search" placeholder="Buscar descrição…">
+        <select id="f-kind"><option value="">Todos os tipos</option><option>Renda</option><option>Gasto fixo</option><option>Gasto variável</option></select>
+        <select id="f-cat"></select>
+        <select id="f-status"><option value="">Todos os status</option><option value="pago">Pago</option><option value="pendente">A vencer</option><option value="proximo">Vence em breve</option><option value="vencido">Vencido</option><option value="areceber">A receber (receita)</option></select>
+        <label class="chk"><input type="checkbox" id="f-all"> Todos os meses</label>
+        <label>De <input type="date" id="f-from"></label><label>Até <input type="date" id="f-to"></label>
+        <button class="btn" id="add-tx">+ Novo lançamento</button>
+      </div>
+      <div class="panel"><div class="scroll"><table id="tx-table"></table></div></div>
+    </section>
+
+    <!-- ===== CONTAS A PAGAR ===== -->
+    <section id="view-payments" class="view" hidden>
+      <p class="hint">Despesas ainda não pagas, da mais antiga para a mais recente. Vencidas ficam em vermelho e as que vencem em até 7 dias, em amarelo.</p>
+      <div class="cards" id="pay-cards"></div>
+      <div class="panel"><div class="scroll"><table id="pay-table"></table></div></div>
+      <h3 class="sec">Receitas a receber (futuro)</h3>
+      <div class="panel"><div class="scroll"><table id="inc-table"></table></div></div>
+    </section>
+
+    <!-- ===== PARCELAS E RECORRÊNCIAS ===== -->
+    <section id="view-recurring" class="view" hidden>
+      <p class="hint">Compras parceladas, assinaturas e despesas recorrentes geram os lançamentos mensais automaticamente (como “não pagos”).</p>
+      <div class="bar"><button class="btn" id="add-rec">+ Nova parcela/recorrência</button></div>
+      <div class="panel"><div class="scroll"><table id="rec-table"></table></div></div>
+    </section>
+
+    <!-- ===== DÍVIDAS ===== -->
+    <section id="view-debts" class="view" hidden>
+      <div class="cards" id="d-cards"></div>
+      <div class="grid">
+        <div class="panel"><h3>Saldo por instituição</h3><div class="ch"><canvas id="ch-d-inst"></canvas></div></div>
+        <div class="panel"><h3>Composição do saldo</h3><div class="ch"><canvas id="ch-d-comp"></canvas></div></div>
+        <div class="panel wide"><h3>Evolução do saldo devedor (12 meses)</h3><div class="ch"><canvas id="ch-d-evo"></canvas></div></div>
+      </div>
+      <div class="bar">
+        <input type="search" id="d-q" placeholder="Buscar banco ou descrição…">
+        <select id="d-type"></select>
+        <select id="d-status"><option value="">Em aberto e quitadas</option><option value="pendente">Pendente</option><option value="parcial">Parcialmente paga</option><option value="atrasada">Atrasada</option><option value="quitada">Quitada</option><option value="arquivada">Arquivada</option></select>
+        <select id="d-due"><option value="">Qualquer vencimento</option><option value="atrasada">Vencidas</option><option value="7">Próximos 7 dias</option><option value="30">Próximos 30 dias</option></select>
+        <input type="number" id="d-rate" min="0" step="0.01" placeholder="Taxa mín. (% a.m.)">
+        <select id="d-sort"><option value="saldo">Maior saldo</option><option value="taxa">Maior taxa</option><option value="venc">Vencimento mais próximo</option></select>
+        <button class="btn" id="d-add">+ Nova dívida</button>
+      </div>
+      <div class="panel"><div class="scroll"><table id="d-table"></table></div></div>
+      <div class="grid" style="margin-top:14px">
+        <div class="panel">
+          <h3>Planejamento de quitação</h3>
+          <div class="bar"><label>Meta mensal (R$) <input type="number" id="p-monthly" min="0" step="0.01" placeholder="0,00"></label>
+            <select id="p-strat"><option>Avalanche</option><option>Bola de neve</option><option>Prioridade</option></select></div>
+          <p class="hint">Avalanche = maior juros primeiro · Bola de neve = menor saldo primeiro · Prioridade = ordem definida em cada dívida.</p>
+          <div id="p-progress"></div><div class="scroll"><table id="p-table"></table></div><p class="hint" id="p-sum"></p>
+        </div>
+        <div class="panel">
+          <h3>Simulação de quitação</h3>
+          <div class="bar"><select id="s-debt"></select></div>
+          <div class="scroll"><table id="s-in"></table></div><div class="scroll"><table id="s-out"></table></div>
+          <div class="ch"><canvas id="ch-d-sim"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== ORÇAMENTO ===== -->
+    <section id="view-budget" class="view" hidden>
+      <p class="hint">Defina quanto pretende gastar por categoria no mês selecionado. O limite vale para todos os meses.</p>
+      <div class="panel"><div class="scroll"><table id="bud-table"></table></div></div>
+    </section>
+
+    <!-- ===== METAS ===== -->
+    <section id="view-goals" class="view" hidden>
+      <div class="bar"><button class="btn" id="add-goal">+ Nova meta</button></div>
+      <div class="cards" id="goals"></div>
+    </section>
+
+    <!-- ===== INVESTIMENTOS ===== -->
+    <section id="view-investments" class="view" hidden>
+      <div class="cards" id="inv-cards"></div>
+      <div class="grid">
+        <div class="panel"><h3>Carteira por tipo</h3><div class="ch"><canvas id="ch-inv"></canvas></div></div>
+        <div class="panel">
+          <div class="bar"><button class="btn" id="add-inv">+ Novo investimento</button></div>
+          <div class="scroll"><table id="inv-table"></table></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== RELATÓRIOS ===== -->
+    <section id="view-reports" class="view" hidden>
+      <div class="bar">
+        <label>De <input type="date" id="r-from"></label>
+        <label>Até <input type="date" id="r-to"></label>
+        <select id="r-cat-f"></select>
+        <select id="r-status"><option value="">Todos os status</option><option value="pago">Pago</option><option value="pendente">A vencer</option><option value="proximo">Vence em breve</option><option value="vencido">Vencido</option></select>
+        <button class="btn ghost" id="r-csv">Exportar CSV</button>
+      </div>
+      <div class="cards" id="r-cards"></div>
+      <div class="grid">
+        <div class="panel"><h3>Resultado por mês</h3><div class="ch"><canvas id="ch-rep"></canvas></div></div>
+        <div class="panel"><h3>Despesas por categoria</h3><div class="scroll"><table id="r-cat"></table></div></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== MODAL GENÉRICO DE FORMULÁRIO ===== -->
+  <div id="toasts" aria-live="polite"></div>
+  <dialog id="modal">
+    <h3 id="modal-title"></h3>
+    <form id="modal-form" novalidate></form>
+  </dialog>
+
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/debts.js"></script>
+  <script src="js/extras.js"></script>
+  <script src="js/life.js"></script>
+</body>
+</html>
